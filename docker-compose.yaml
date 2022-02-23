@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  git-server:
+    container_name: gitops-gitbucket
+    image: gitbucket/gitbucket
+    restart: always
+    ports:
+      - 29418:29418
+      - 8080:8080
+    volumes:
+      - repo_data:/gitbucket
+# --------------------------------------------
+# Localstack
+# --------------------------------------------
+  localstack:
+    container_name: "gitops-localstack"
+    image: localstack/localstack
+    restart: always
+    network_mode: bridge
+    ports:
+      - "127.0.0.1:53:53"                # only required for Pro
+      - "127.0.0.1:53:53/udp"            # only required for Pro
+      - "127.0.0.1:443:443"              # only required for Pro
+      - "127.0.0.1:4510-4530:4510-4530"  # only required for Pro
+      - "0.0.0.0:4566:4566"
+      - "0.0.0.0:4571:4571"
+    environment:
+      - SERVICES=s3,lambda,cloudwatch,events,cloudformation,kms,iam,sts
+      - DEBUG=${DEBUG- }
+      - DATA_DIR=/tmp/localstack/data
+      - LAMBDA_EXECUTOR=${LAMBDA_EXECUTOR- }
+      - LOCALSTACK_API_KEY=${LOCALSTACK_API_KEY- }  # only required for Pro
+      - HOST_TMP_FOLDER=${TMPDIR:-/tmp/}localstack
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "localstack_data:/localstack:/tmp/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+# --------------------------------------------
+# Jenkins
+# --------------------------------------------
+  jenkins:
+    container_name: "gitops-jenkins"
+    image: jenkins/jenkins:lts
+    restart: always
+    ports:
+      - 8081:8080
+      - 50000:50000
+    volumes:
+      - jenkins_data:/var/jenkins_home
+volumes: 
+  repo_data:
+    external: false
+  localstack_data:
+    external: false
+  jenkins_data:
+    external: false
